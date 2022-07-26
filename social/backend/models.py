@@ -36,7 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     # Profile
     full_name = models.CharField(max_length=30, null=False)
-    phone_number = models.IntegerField(unique=True, null=False)
+    phone_number = models.IntegerField(null=False)
     dob = models.IntegerField(null=False)
     username = models.CharField(max_length=30, null=True, unique=True) 
     friend_count = models.IntegerField(default=0)
@@ -46,14 +46,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         
     objects = CustomAccountManager()
 
-    USERNAME_FIELD = "phone_number"
-    REQUIRED_FIELDS = ["username", "full_name", "dob"]
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ["full_name", "dob"]
 
     def __str__(self):
         return str(f"Name: {self.full_name}, Phone Number: {self.phone_number}")
 
 
 class Login(models.Model):
-    phone_number = models.IntegerField(unique=True, null=True)
+    phone_number = models.IntegerField(unique=True, null=False)
     code = models.CharField(max_length=6, null=False)
+ 
     
+class ResendOTP(models.Model):
+    phone_number = models.IntegerField(unique=True, null=False)

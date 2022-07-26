@@ -5,13 +5,15 @@ from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .serializers import UserSerializer, LoginSerializer
+from .serializers import UserSerializer, LoginSerializer, ResendOTPSerializer
 from .models import User
 from .utils import send_otp, generate_username, verify_otp, resend_otp
 
 # Create your views here.
 
 class CreateUserAPIView(generics.CreateAPIView):
+    # This View Creates a New User is User does not exsist in the DATABASE
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -25,26 +27,32 @@ class CreateUserAPIView(generics.CreateAPIView):
         dob = serializer.validated_data["dob"]
         username = full_name[:3] + generate_username()
 
-        # Create a New User
-        user = User.objects.create(
-            full_name = full_name,
-            phone_number = phone_number,
-            username = username,
-            dob=dob
-        )
-
-        user.save()
-
         # Send OTP
         sms = send_otp(str(phone_number))
         print(phone_number)
 
-        return Response({"message": "User created successfully and OTP {}".format(sms["message"])})
+        # Check if user has already been created
+        qset = User.objects.filter(phone_number=phone_number)
+        if qset.exists():
+            return Response({"message": "OTP {} to exsisting user".format(sms["message"])})
 
- 
+        else:
+            # Create a New User
+            user = User.objects.create(
+                full_name = full_name,
+                phone_number = phone_number,
+                username = username,
+                dob=dob
+            )
+            user.save()
+            return Response({"message": "New User created successfully and OTP {}".format(sms["message"])})
+
+       
 @api_view(["POST"])
 def resend_otp(request):
-    serializer = LoginSerializer(data = request.data)
+    # This View helps in resending OTP after 60 seconds
+
+    serializer = ResendOTPSerializer(data = request.data)
 
     if serializer.is_valid(raise_exception=True):
         phone_number = serializer.validated_data["phone_number"]
@@ -54,9 +62,12 @@ def resend_otp(request):
         return Response({"message": sms["message"]})
 
 
-
 @api_view(["POST"])
 def login(request):
+
+    # This View helps OTP Verification and logging in a user
+    # An authorization token is sent back as a response and is to be included in headers
+
     serializer = LoginSerializer(data = request.data)
 
     if serializer.is_valid(raise_exception=True):
@@ -69,7 +80,8 @@ def login(request):
         # Verify OTP
         sms = verify_otp(str(phone_number), otp)
 
-        # If OTP is approved authenticate user
+        # If OTP is approved authenticate user and return authorization token
+    
         if sms["message"] == "approved":
             token, created = Token.objects.get_or_create(user=user)
             return Response({

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Login, User
+from .models import Login, User, ResendOTP
 
 # Create your serializiers here
 class UserSerializer(serializers.ModelSerializer):
@@ -10,4 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = Login
+        fields = "__all__"
+
+class ResendOTPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResendOTP
         fields = "__all__"
