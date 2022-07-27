@@ -1,9 +1,10 @@
 from rest_framework import generics
-from rest_framework.decorators import api_view
-from rest_framework.authentication import TokenAuthentication, SessionAuthentication
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.contrib.auth import login, logout
 
 from .serializers import UserSerializer, LoginSerializer, ResendOTPSerializer
 from .models import User
@@ -32,10 +33,21 @@ class CreateUserAPIView(generics.CreateAPIView):
         print(phone_number)
 
         # Check if user has already been created
-        qset = User.objects.filter(phone_number=phone_number)
-        if qset.exists():
-            return Response({"message": "OTP {} to exsisting user".format(sms["message"])})
+        registered_user = User.objects.get(phone_number=phone_number)
 
+        if registered_user:
+
+            token, created = Token.objects.get_or_create(user=registered_user)
+            return Response({
+                "data": {
+                "user_id": registered_user.id,
+                "phone_number": registered_user.phone_number,
+                "username": registered_user.username,
+                "token": token.key   
+                },
+                "message": "Sms {} to exsisting user".format(sms["message"])
+            })
+   
         else:
             # Create a New User
             user = User.objects.create(
@@ -45,7 +57,18 @@ class CreateUserAPIView(generics.CreateAPIView):
                 dob=dob
             )
             user.save()
-            return Response({"message": "New User created successfully and OTP {}".format(sms["message"])})
+
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                "data": {
+                "user": user.id,
+                "phone_number": user.phone_number,
+                "username": user.username,
+                "token": token.key
+                },
+                "message": "New User created succefully and sms {}".format(sms["message"])
+  
+            })
 
        
 @api_view(["POST"])
@@ -63,7 +86,8 @@ def resend_otp(request):
 
 
 @api_view(["POST"])
-def login(request):
+@authentication_classes([TokenAuthentication])
+def login_view(request):
 
     # This View helps OTP Verification and logging in a user
     # An authorization token is sent back as a response and is to be included in headers
@@ -83,14 +107,36 @@ def login(request):
         # If OTP is approved authenticate user and return authorization token
     
         if sms["message"] == "approved":
+
+            # Login user
+            login(request, user)
+
             token, created = Token.objects.get_or_create(user=user)
             return Response({
+                "data": {
                 "phone_number": user.phone_number,
                 "token": token.key,
-                "user_id": user.pk
+                "user_id": user.pk,
+                },
+                "message": "User logged in successfully!"
             })
         
         else:
             return Response({"message": "Invalid OTP"})
 
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+
+    # This View logs out authenticated user
+    # Could be POST method also
+
+    request.user.auth_token.delete()
+
+    logout(request)
+
+    return Response({"message": "User Logged out successfully"})
+
+    
 
