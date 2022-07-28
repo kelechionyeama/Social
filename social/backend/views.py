@@ -32,23 +32,23 @@ class CreateUserAPIView(generics.CreateAPIView):
         sms = send_otp(str(phone_number))
         print(phone_number)
 
-        # Check if user has already been created
-        registered_user = User.objects.get(phone_number=phone_number)
+        try:
+            # Check if user has already been created
+            registered_user = User.objects.get(phone_number=phone_number)
+            if registered_user:
 
-        if registered_user:
+                token, created = Token.objects.get_or_create(user=registered_user)
+                return Response({
+                    "data": {
+                    "user_id": registered_user.id,
+                    "phone_number": registered_user.phone_number,
+                    "username": registered_user.username,
+                    "token": token.key   
+                    },
+                    "message": "Sms {} to exsisting user".format(sms["message"])      
+                })
 
-            token, created = Token.objects.get_or_create(user=registered_user)
-            return Response({
-                "data": {
-                "user_id": registered_user.id,
-                "phone_number": registered_user.phone_number,
-                "username": registered_user.username,
-                "token": token.key   
-                },
-                "message": "Sms {} to exsisting user".format(sms["message"])
-            })
-   
-        else:
+        except:
             # Create a New User
             user = User.objects.create(
                 full_name = full_name,
@@ -67,8 +67,8 @@ class CreateUserAPIView(generics.CreateAPIView):
                 "token": token.key
                 },
                 "message": "New User created succefully and sms {}".format(sms["message"])
-  
             })
+
 
        
 @api_view(["POST"])

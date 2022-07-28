@@ -39,6 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone_number = models.IntegerField(null=False)
     dob = models.IntegerField(null=False)
     username = models.CharField(max_length=30, null=True, unique=True) 
+    bio = models.TextField(max_length=160, null=True)
     friend_count = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -47,7 +48,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = CustomAccountManager()
 
     USERNAME_FIELD = "username"
-    REQUIRED_FIELDS = ["full_name", "dob"]
+    REQUIRED_FIELDS = ["full_name", "phone_number", "dob"]
 
     def __str__(self):
         return str(f"Name: {self.full_name}, Phone Number: {self.phone_number}")
