@@ -35,6 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     #####################
 
     # Profile
+    created = models.DateTimeField(auto_now_add=True)
     full_name = models.CharField(max_length=30, null=False)
     phone_number = models.IntegerField(null=False)
     dob = models.IntegerField(null=False)

@@ -20,6 +20,11 @@ class ListFriendsAPIView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
 
+        # Update Friend count for LOGGED IN user
+        total_friends = Friendship.objects.filter(profile = user, request=True, accept=True).count()
+        user.friend_count = total_friends
+        user.save() 
+
         return Friendship.objects.filter(profile = user)
 
 
@@ -44,21 +49,25 @@ def UpdateFriendship(request):
             # Check if there's already an established relationship to updated
             registered_relationship = Friendship.objects.get(profile=profile, friend=friend)
             if registered_relationship:
-
+                
+                # Update for LOGGED IN user
                 relationship = Friendship.objects.filter(profile=profile, friend=friend).update(
                     request = friend_request,
                     accept = friend_accept
                 )
 
-                # Update friend count of current user where request and accept are True
-                total_friends = Friendship.objects.filter(profile = profile, request=True, accept=True).count()
-                profile.friend_count = total_friends
-                profile.save()
+                # Update for FRIEND
+                f_relationship = Friendship.objects.filter(profile=friend, friend=profile).update(
+                    request = friend_request,
+                    accept = friend_accept
+                )
 
                 return Response({"message": "Friendship relationship updated successfully!"})
-
+                
         except:
             # If theres no established relationship, create a new one
+
+            # For LOGGED IN user
             relationship =  Friendship(
                 profile=profile,
                 friend=friend,
@@ -67,9 +76,43 @@ def UpdateFriendship(request):
             )
             relationship.save()
 
-            # Update friend count of current user where request and accept are True
-            total_friends = Friendship.objects.filter(profile = profile, request=True, accept=True).count()
-            profile.friend_count = total_friends
-            profile.save()
+            # Create for FRIEND also
+            relationship =  Friendship(
+                profile=friend,
+                friend=profile,
+                request=friend_accept, # SWAP FOR WHEN FRIEND INSTANCE >>> REQUEST = FALSE, ACCEPT= TRUE
+                accept=friend_request # REQUEST BECOMES ACCEPT AND ACCEPT BECOMES REQUEST
+            )
+            relationship.save()
 
             return Response({"message": "New Friendship relationship created successfully!"})
+            
+
+@api_view(["DELETE"])
+@authentication_classes([TokenAuthentication, SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def DeleteFriendship(request):
+
+    # This view deletes friendship relationships
+
+    serializer = FriendshipSerializer(data = request.data)
+
+    if serializer.is_valid(raise_exception=True):
+        profile = request.user
+        friend = serializer.validated_data["friend"]
+
+        try:
+            # Delete for LOGGED IN user
+            Friendship.objects.filter(profile=profile, friend=friend).delete()
+
+            # Delete for FRIEND
+            Friendship.objects.filter(profile=friend, friend=profile).delete()
+
+            return Response({
+                "message": "{} and {} Friendship relatonship deleted successfully!".format(profile, friend)
+            })
+
+        except:
+            return Response({
+                "message": "Friendship relationship could not be found"
+            })
