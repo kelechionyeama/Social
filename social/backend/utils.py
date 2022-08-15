@@ -11,13 +11,13 @@ import uuid
 """
 
 def send_otp(recepient):
-	account_sid = "AC36a32a1ab9d8062b36ebcd6002ca4a7e"
-	auth_token = "e4eda47d320083290bcb369a9ce68ea7"
+	account_sid = ""
+	auth_token = ""
 	client = Client(account_sid, auth_token)
 
 	verification = client.verify \
 						.v2 \
-						.services("VA484b98af358484700ae6cc620494c6f6") \
+						.services("") \
 						.verifications \
 						.create(to="+" + recepient, channel='sms')
 
@@ -29,13 +29,13 @@ def send_otp(recepient):
 	return status
 
 def verify_otp (recepient, v_code):
-	account_sid = "AC36a32a1ab9d8062b36ebcd6002ca4a7e"
-	auth_token = "e4eda47d320083290bcb369a9ce68ea7"
+	account_sid = ""
+	auth_token = ""
 	client = Client(account_sid, auth_token)
 
 	verification_check = client.verify \
 							.v2 \
-							.services("VA484b98af358484700ae6cc620494c6f6") \
+							.services("") \
 							.verification_checks \
 							.create(to="+" + recepient, code=v_code)
 
@@ -44,13 +44,13 @@ def verify_otp (recepient, v_code):
 	return status
 
 def resend_otp(recepient):
-	account_sid = "AC36a32a1ab9d8062b36ebcd6002ca4a7e"
-	auth_token = "e4eda47d320083290bcb369a9ce68ea7"
+	account_sid = ""
+	auth_token = ""
 	client = Client(account_sid, auth_token)
 
 	verification = client.verify \
 						.v2 \
-						.services("VA484b98af358484700ae6cc620494c6f6") \
+						.services("") \
 						.verifications("+" + recepient) \
 						.update(status='canceled')
 
